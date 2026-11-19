@@ -19,6 +19,8 @@ class CabinetInput(BaseModel):
 class AdmitInput(BaseModel):
     accession_id:int
     cabinet_id:int
+class RelocationExecuteInput(BaseModel):
+    relocation_id:int
 class RiskInput(BaseModel):
     accession_id:int
 class ReviewInput(BaseModel):

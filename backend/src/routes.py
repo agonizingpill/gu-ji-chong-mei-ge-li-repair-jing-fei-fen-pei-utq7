@@ -15,7 +15,7 @@ def login(data:Login,db=Depends(session)):
     return {'token':issue(user),'username':user.username,'role':user.role}
 @router.get('/workspace')
 def workspace(db=Depends(session),user=Depends(current)):
-    models=[Accession,Observation,Cabinet,Isolation,RiskAssessment,Treatment,Step,Grant,Encumbrance,Handover]
+    models=[Accession,Observation,Cabinet,Isolation,RiskAssessment,Treatment,Step,Grant,Encumbrance,Handover,Relocation,RelocationItem]
     return {m.__tablename__:[dump(v) for v in db.scalars(select(m).order_by(m.id))] for m in models}
 @router.get('/audit')
 def audits(db=Depends(session),user=Depends(supervisor)):return [dump(v) for v in db.scalars(select(Audit).order_by(Audit.id.desc()).limit(100))]
@@ -27,6 +27,10 @@ def observe(data:ObservationInput,db=Depends(session),user=Depends(editor)):retu
 def cabinet(data:CabinetInput,db=Depends(session),user=Depends(supervisor)):return isolation.cabinet(db,data,user)
 @router.post('/isolations')
 def admit(data:AdmitInput,db=Depends(session),user=Depends(editor)):return isolation.admit(db,data,user)
+@router.post('/cabinets/{id}/decommission')
+def decommission(id:int,db=Depends(session),user=Depends(supervisor)):return isolation.decommission(db,id,user)
+@router.post('/relocations/execute')
+def execute_relocation(data:RelocationExecuteInput,db=Depends(session),user=Depends(editor)):return isolation.execute_relocation(db,data.relocation_id,user)
 @router.post('/risks')
 def assess(data:RiskInput,db=Depends(session),user=Depends(editor)):return risk.request_risk(db,data,user)
 @router.post('/risks/{id}/review')

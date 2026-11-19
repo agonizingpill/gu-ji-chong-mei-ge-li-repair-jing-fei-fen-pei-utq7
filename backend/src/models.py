@@ -1,5 +1,5 @@
 from datetime import datetime,timezone
-from sqlalchemy import Integer,String,Float,ForeignKey,UniqueConstraint,CheckConstraint,JSON,DateTime,Boolean
+from sqlalchemy import Integer,String,Float,ForeignKey,UniqueConstraint,CheckConstraint,JSON,DateTime,Boolean,Index,true
 from sqlalchemy.orm import Mapped,mapped_column
 from .database import Base
 from .constants import FolioState,PlanState
@@ -34,14 +34,34 @@ class Cabinet(Base):
     id:Mapped[int]=mapped_column(primary_key=True)
     code:Mapped[str]=mapped_column(String(30),unique=True)
     capacity:Mapped[int]=mapped_column(Integer)
+    active:Mapped[bool]=mapped_column(Boolean,default=True,server_default=true())
+    decommissioned_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
 class Isolation(Base):
     __tablename__='isolations'
+    __table_args__=(Index('ix_isolations_active_cabinet','active','cabinet_id'),)
     id:Mapped[int]=mapped_column(primary_key=True)
     accession_id:Mapped[int]=mapped_column(ForeignKey('accessions.id'))
     cabinet_id:Mapped[int]=mapped_column(ForeignKey('cabinets.id'))
     active:Mapped[bool]=mapped_column(Boolean,default=True)
     entered:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
     exited:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
+class Relocation(Base):
+    __tablename__='relocations'
+    id:Mapped[int]=mapped_column(primary_key=True)
+    source_cabinet_id:Mapped[int]=mapped_column(ForeignKey('cabinets.id'))
+    status:Mapped[str]=mapped_column(String(20),default='open')
+    created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+    executed_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
+class RelocationItem(Base):
+    __tablename__='relocation_items'
+    id:Mapped[int]=mapped_column(primary_key=True)
+    relocation_id:Mapped[int]=mapped_column(ForeignKey('relocations.id'))
+    accession_id:Mapped[int]=mapped_column(ForeignKey('accessions.id'))
+    risk_level:Mapped[str]=mapped_column(String(20))
+    target_cabinet_id:Mapped[int|None]=mapped_column(ForeignKey('cabinets.id'),nullable=True)
+    status:Mapped[str]=mapped_column(String(20),default='waiting')
+    reason:Mapped[str]=mapped_column(String(200),default='')
+    moved_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
 class RiskAssessment(Base):
     __tablename__='risk_assessments'
     id:Mapped[int]=mapped_column(primary_key=True)

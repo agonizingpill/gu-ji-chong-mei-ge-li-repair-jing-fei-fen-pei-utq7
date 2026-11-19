@@ -10,6 +10,14 @@ logging.basicConfig(level=logging.INFO)
 @asynccontextmanager
 async def lifespan(app):
     Base.metadata.create_all(engine)
+    from sqlalchemy import text,inspect
+    # create_all 不修改既有表；演示库在升级后补齐停用列，保持幂等。
+    columns={c['name'] for c in inspect(engine).get_columns('cabinets')}
+    add_column={'sqlite':{'active':'ALTER TABLE cabinets ADD COLUMN active BOOLEAN NOT NULL DEFAULT 1','decommissioned_at':'ALTER TABLE cabinets ADD COLUMN decommissioned_at DATETIME'},
+                'postgresql':{'active':'ALTER TABLE cabinets ADD COLUMN active BOOLEAN NOT NULL DEFAULT TRUE','decommissioned_at':'ALTER TABLE cabinets ADD COLUMN decommissioned_at TIMESTAMP WITH TIME ZONE'}}
+    with engine.begin() as conn:
+        for name,stmt in add_column.get(engine.dialect.name,{}).items():
+            if name not in columns:conn.execute(text(stmt))
     if os.getenv('SEED_DEMO','true')=='true':
         try:
             from .seed import seed
